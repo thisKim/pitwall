@@ -35,7 +35,7 @@ export default function App() {
   const [demo, setDemo] = useState(
     () => DEMO_AVAILABLE && localStorage.getItem(DEMO_KEY) === 'true',
   );
-  const { telemetry, status, config, setListener } = useTelemetry(demo);
+  const { telemetry, status, config, setListener, wsUrl, setWsUrl } = useTelemetry(demo);
   const [selected, setSelected] = useState<string[]>(loadSelection);
   const [speedUnit, setSpeedUnit] = useState<SpeedUnit>(
     () => (localStorage.getItem(UNIT_KEY) as SpeedUnit) ?? 'mph',
@@ -100,14 +100,12 @@ export default function App() {
         </h1>
         <div className="topbar__right">
           <span className={`status status--${status}`}>{STATUS_TEXT[status]}</span>
-          {config && (
-            <button
-              className={config.error ? 'ghost ghost--error' : 'ghost'}
-              onClick={() => setSettingsOpen((v) => !v)}
-            >
-              {`${config.host}:${config.port}`}
-            </button>
-          )}
+          <button
+            className={config?.error ? 'ghost ghost--error' : 'ghost'}
+            onClick={() => setSettingsOpen((v) => !v)}
+          >
+            {config ? `${config.host}:${config.port}` : 'Bridge…'}
+          </button>
           {DEMO_AVAILABLE && (
             <label className="toggle">
               <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
@@ -123,8 +121,14 @@ export default function App() {
         </div>
       </header>
 
-      {settingsOpen && config && (
-        <ListenerSettings config={config} onApply={setListener} onClose={() => setSettingsOpen(false)} />
+      {settingsOpen && (
+        <ListenerSettings
+          config={config}
+          wsUrl={wsUrl}
+          onApply={setListener}
+          onApplyBridge={setWsUrl}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
 
       <main className="layout">

@@ -19,10 +19,15 @@ export interface ListenerConfig {
   reserved: { from: number; to: number };
 }
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? `ws://${location.hostname}:8787`;
-// Browsers refuse an insecure WebSocket from an HTTPS page, and the constructor
-// throws rather than firing onerror.
-const WS_BLOCKED = location.protocol === 'https:' && WS_URL.startsWith('ws:');
+// The bridge always runs on the viewer's own machine, never on the page's host.
+const DEFAULT_WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://127.0.0.1:8787';
+const WS_KEY = 'fhdash.bridgeUrl.v1';
+// Loopback is exempt from mixed-content blocking; anything else insecure is not,
+// and the WebSocket constructor throws rather than firing onerror.
+const LOOPBACK = /^wss?:\/\/(127\.0\.0\.1|\[::1\]|localhost)(:|\/|$)/;
+
+const isBlocked = (url: string) =>
+  location.protocol === 'https:' && url.startsWith('ws:') && !LOOPBACK.test(url);
 
 /**
  * Subscribes to the telemetry bridge and re-renders at animation frame rate.
@@ -32,6 +37,7 @@ export function useTelemetry(demo: boolean) {
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [status, setStatus] = useState<ConnectionState>('connecting');
   const [config, setConfig] = useState<ListenerConfig | null>(null);
+  const [wsUrl, setWsUrlState] = useState(() => localStorage.getItem(WS_KEY) ?? DEFAULT_WS_URL);
   const latest = useRef<Frame | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const demoRef = useRef(demo);
@@ -44,9 +50,12 @@ export function useTelemetry(demo: boolean) {
     let closed = false;
     const start = performance.now();
 
+    setConfig(null);
+    latest.current = null;
+
     const connect = () => {
       try {
-        socket = new WebSocket(WS_URL);
+        socket = new WebSocket(wsUrl);
       } catch {
         setStatus('blocked');
         return;
@@ -85,7 +94,7 @@ export function useTelemetry(demo: boolean) {
       raf = requestAnimationFrame(tick);
     };
 
-    if (WS_BLOCKED) setStatus('blocked');
+    if (isBlocked(wsUrl)) setStatus('blocked');
     else connect();
     raf = requestAnimationFrame(tick);
 
@@ -95,7 +104,7 @@ export function useTelemetry(demo: boolean) {
       clearTimeout(retry);
       socket?.close();
     };
-  }, []);
+  }, [wsUrl]);
 
   const setListener = useCallback((host: string, port: number) => {
     const socket = socketRef.current;
@@ -104,5 +113,12 @@ export function useTelemetry(demo: boolean) {
     }
   }, []);
 
-  return { telemetry, status, config, setListener };
+  const setWsUrl = useCallback((url: string) => {
+    const next = url.trim() || DEFAULT_WS_URL;
+    localStorage.setItem(WS_KEY, next);
+    setStatus('connecting');
+    setWsUrlState(next);
+  }, []);
+
+  return { telemetry, status, config, setListener, wsUrl, setWsUrl };
 }

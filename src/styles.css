@@ -123,6 +123,11 @@ body {
   gap: 4px;
 }
 
+.listener__grow {
+  flex: 1;
+  min-width: 220px;
+}
+
 .listener label span {
   font-size: 11px;
   letter-spacing: 0.1em;
