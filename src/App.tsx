@@ -28,13 +28,12 @@ const STATUS_TEXT: Record<string, string> = {
   demo: 'Demo data',
 };
 
-const DEMO_DEFAULT = import.meta.env.VITE_DEMO_DEFAULT === 'true';
+const DEMO_AVAILABLE = import.meta.env.DEV;
 
 export default function App() {
-  const [demo, setDemo] = useState(() => {
-    const stored = localStorage.getItem(DEMO_KEY);
-    return stored === null ? DEMO_DEFAULT : stored === 'true';
-  });
+  const [demo, setDemo] = useState(
+    () => DEMO_AVAILABLE && localStorage.getItem(DEMO_KEY) === 'true',
+  );
   const { telemetry, status, config, setListener } = useTelemetry(demo);
   const [selected, setSelected] = useState<string[]>(loadSelection);
   const [speedUnit, setSpeedUnit] = useState<SpeedUnit>(
@@ -108,10 +107,12 @@ export default function App() {
               {`${config.host}:${config.port}`}
             </button>
           )}
-          <label className="toggle">
-            <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
-            <span>Demo data</span>
-          </label>
+          {DEMO_AVAILABLE && (
+            <label className="toggle">
+              <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
+              <span>Demo data</span>
+            </label>
+          )}
           <button className="ghost" onClick={() => setSpeedUnit((u) => (u === 'mph' ? 'kph' : 'mph'))}>
             {speedUnit.toUpperCase()}
           </button>

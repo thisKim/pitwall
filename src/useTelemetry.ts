@@ -63,7 +63,8 @@ export function useTelemetry(demo: boolean) {
     };
 
     const tick = () => {
-      if (demoRef.current) {
+      // Dead code in production builds, so the generator is tree-shaken out.
+      if (import.meta.env.DEV && demoRef.current) {
         setTelemetry(demoTelemetry((performance.now() - start) / 1000));
         setStatus('demo');
       } else {
