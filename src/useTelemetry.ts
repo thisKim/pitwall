@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { demoTelemetry } from './demoTelemetry';
 import type { Telemetry } from './metrics';
 
-export type ConnectionState = 'connecting' | 'live' | 'idle' | 'offline' | 'demo';
+export type ConnectionState = 'connecting' | 'live' | 'idle' | 'offline' | 'demo' | 'blocked';
 
 interface Frame {
   type: 'frame';
@@ -20,6 +20,9 @@ export interface ListenerConfig {
 }
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? `ws://${location.hostname}:8787`;
+// Browsers refuse an insecure WebSocket from an HTTPS page, and the constructor
+// throws rather than firing onerror.
+const WS_BLOCKED = location.protocol === 'https:' && WS_URL.startsWith('ws:');
 
 /**
  * Subscribes to the telemetry bridge and re-renders at animation frame rate.
@@ -42,7 +45,12 @@ export function useTelemetry(demo: boolean) {
     const start = performance.now();
 
     const connect = () => {
-      socket = new WebSocket(WS_URL);
+      try {
+        socket = new WebSocket(WS_URL);
+      } catch {
+        setStatus('blocked');
+        return;
+      }
       socketRef.current = socket;
       socket.onopen = () => setStatus('idle');
       socket.onmessage = (event) => {
@@ -77,7 +85,8 @@ export function useTelemetry(demo: boolean) {
       raf = requestAnimationFrame(tick);
     };
 
-    connect();
+    if (WS_BLOCKED) setStatus('blocked');
+    else connect();
     raf = requestAnimationFrame(tick);
 
     return () => {

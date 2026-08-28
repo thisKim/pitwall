@@ -26,6 +26,7 @@ const STATUS_TEXT: Record<string, string> = {
   idle: 'Waiting for game data',
   live: 'Live',
   demo: 'Demo data',
+  blocked: 'No bridge — run this app locally for live telemetry',
 };
 
 const DEMO_AVAILABLE = import.meta.env.DEV;
