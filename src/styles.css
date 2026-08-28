@@ -74,12 +74,6 @@ body {
   background: #10241a;
 }
 
-.status--offline {
-  color: var(--accent-2);
-  border-color: #58281c;
-  background: #24120d;
-}
-
 .status--demo {
   color: #ffc861;
   border-color: #5a4620;
@@ -121,11 +115,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.listener__grow {
-  flex: 1;
-  min-width: 220px;
 }
 
 .listener label span {

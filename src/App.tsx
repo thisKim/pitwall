@@ -5,9 +5,10 @@ import { MetricPicker } from './components/MetricPicker';
 import { buildMetrics, DEFAULT_METRIC_IDS, type SpeedUnit } from './metrics';
 import { useTelemetry } from './useTelemetry';
 
-const STORAGE_KEY = 'fhdash.selection.v1';
-const UNIT_KEY = 'fhdash.speedUnit.v1';
-const DEMO_KEY = 'fhdash.demo.v1';
+// v3 ids are raw telemetry field names; earlier selections are not compatible.
+const STORAGE_KEY = 'pitwall.selection.v3';
+const UNIT_KEY = 'pitwall.speedUnit.v1';
+const DEMO_KEY = 'pitwall.demo.v1';
 
 function loadSelection(): string[] {
   try {
@@ -21,12 +22,9 @@ function loadSelection(): string[] {
 }
 
 const STATUS_TEXT: Record<string, string> = {
-  connecting: 'Connecting to bridge…',
-  offline: 'Bridge offline — start `npm run dev:server`',
   idle: 'Waiting for game data',
   live: 'Live',
   demo: 'Demo data',
-  blocked: 'No bridge — run this app locally for live telemetry',
 };
 
 const DEMO_AVAILABLE = import.meta.env.DEV;
@@ -35,7 +33,7 @@ export default function App() {
   const [demo, setDemo] = useState(
     () => DEMO_AVAILABLE && localStorage.getItem(DEMO_KEY) === 'true',
   );
-  const { telemetry, status, config, setListener, wsUrl, setWsUrl } = useTelemetry(demo);
+  const { telemetry, status, config, setListener } = useTelemetry(demo);
   const [selected, setSelected] = useState<string[]>(loadSelection);
   const [speedUnit, setSpeedUnit] = useState<SpeedUnit>(
     () => (localStorage.getItem(UNIT_KEY) as SpeedUnit) ?? 'mph',
@@ -57,7 +55,10 @@ export default function App() {
     localStorage.setItem(UNIT_KEY, speedUnit);
   }, [speedUnit]);
 
-  const metrics = useMemo(() => buildMetrics(speedUnit), [speedUnit]);
+  const metrics = useMemo(
+    () => buildMetrics(config?.fields ?? [], speedUnit),
+    [config?.fields, speedUnit],
+  );
   const byId = useMemo(() => new Map(metrics.map((m) => [m.id, m])), [metrics]);
   const visible = useMemo(
     () => selected.map((id) => byId.get(id)).filter((m): m is NonNullable<typeof m> => Boolean(m)),
@@ -95,16 +96,14 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>
-          FH6 <span>Telemetry</span>
-        </h1>
+        <h1>Pitwall</h1>
         <div className="topbar__right">
           <span className={`status status--${status}`}>{STATUS_TEXT[status]}</span>
           <button
             className={config?.error ? 'ghost ghost--error' : 'ghost'}
             onClick={() => setSettingsOpen((v) => !v)}
           >
-            {config ? `${config.host}:${config.port}` : 'Bridge…'}
+            {config ? `${config.host}:${config.port}` : 'Listener…'}
           </button>
           {DEMO_AVAILABLE && (
             <label className="toggle">
@@ -122,13 +121,7 @@ export default function App() {
       </header>
 
       {settingsOpen && (
-        <ListenerSettings
-          config={config}
-          wsUrl={wsUrl}
-          onApply={setListener}
-          onApplyBridge={setWsUrl}
-          onClose={() => setSettingsOpen(false)}
-        />
+        <ListenerSettings config={config} onApply={setListener} onClose={() => setSettingsOpen(false)} />
       )}
 
       <main className="layout">

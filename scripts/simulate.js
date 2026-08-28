@@ -1,7 +1,7 @@
-// Sends synthetic FH6 Data Out packets to the listener so the dashboard can be
+// Sends synthetic FH6 Data Out packets to the app so the dashboard can be
 // developed without the game running.  Usage: npm run simulate
 import dgram from 'node:dgram';
-import { FIELDS, PACKET_SIZE } from './packet.js';
+import { FIELDS, PACKET_SIZE } from '../electron/packet.js';
 
 const PORT = Number(process.env.FH_UDP_PORT ?? 5400);
 const HOST = process.env.FH_UDP_HOST ?? '127.0.0.1';
