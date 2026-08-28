@@ -28,8 +28,13 @@ const STATUS_TEXT: Record<string, string> = {
   demo: 'Demo data',
 };
 
+const DEMO_DEFAULT = import.meta.env.VITE_DEMO_DEFAULT === 'true';
+
 export default function App() {
-  const [demo, setDemo] = useState(() => localStorage.getItem(DEMO_KEY) === 'true');
+  const [demo, setDemo] = useState(() => {
+    const stored = localStorage.getItem(DEMO_KEY);
+    return stored === null ? DEMO_DEFAULT : stored === 'true';
+  });
   const { telemetry, status, config, setListener } = useTelemetry(demo);
   const [selected, setSelected] = useState<string[]>(loadSelection);
   const [speedUnit, setSpeedUnit] = useState<SpeedUnit>(
@@ -95,12 +100,14 @@ export default function App() {
         </h1>
         <div className="topbar__right">
           <span className={`status status--${status}`}>{STATUS_TEXT[status]}</span>
-          <button
-            className={config?.error ? 'ghost ghost--error' : 'ghost'}
-            onClick={() => setSettingsOpen((v) => !v)}
-          >
-            {config ? `${config.host}:${config.port}` : 'Listener…'}
-          </button>
+          {config && (
+            <button
+              className={config.error ? 'ghost ghost--error' : 'ghost'}
+              onClick={() => setSettingsOpen((v) => !v)}
+            >
+              {`${config.host}:${config.port}`}
+            </button>
+          )}
           <label className="toggle">
             <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
             <span>Demo data</span>
@@ -114,7 +121,7 @@ export default function App() {
         </div>
       </header>
 
-      {settingsOpen && (
+      {settingsOpen && config && (
         <ListenerSettings config={config} onApply={setListener} onClose={() => setSettingsOpen(false)} />
       )}
 

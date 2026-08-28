@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: fhdash
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      # No UDP bridge is reachable from Render, so start in demo mode.
+      - key: VITE_DEMO_DEFAULT
+        value: 'true'
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
